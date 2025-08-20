@@ -1,0 +1,33 @@
+---
+- name: Update all containers via Proxmox pct
+  hosts: containers
+  gather_facts: no
+
+  tasks:
+    - name: Update apt package lists
+      command: >
+        sudo pct exec {{ pct_id }} -- apt-get update
+      delegate_to: "{{ proxmox_delegate }}"
+      register: update_out
+      changed_when: "'Get:' in update_out.stdout or 'Hit:' in update_out.stdout"
+
+    - name: Upgrade packages
+      command: >
+        sudo pct exec {{ pct_id }} -- apt-get -y upgrade
+      delegate_to: "{{ proxmox_delegate }}"
+      register: upgrade_out
+      changed_when: "'upgraded,' in upgrade_out.stdout"
+
+    - name: Autoremove unused packages
+      command: >
+        sudo pct exec {{ pct_id }} -- apt-get -y autoremove
+      delegate_to: "{{ proxmox_delegate }}"
+      register: autoremove_out
+      changed_when: "'removed' in autoremove_out.stdout"
+
+    - name: Show summary
+      debug:
+        msg: |
+          Update: {{ update_out.stdout }}
+          Upgrade: {{ upgrade_out.stdout }}
+          Autoremove: {{ autoremove_out.stdout }}
