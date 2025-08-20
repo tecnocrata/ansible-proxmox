@@ -12,11 +12,20 @@
       register: update_out
       changed_when: "'Get:' in update_out.stdout or 'Hit:' in update_out.stdout"
 
+    - name: Wait for APT/dpkg locks to clear
+      command: >
+        sudo pct exec {{ pct_id }} --
+        bash -lc 'while fuser /var/lib/dpkg/lock /var/lib/dpkg/lock-frontend /var/lib/apt/lists/lock >/dev/null 2>&1; do sleep 5; done'
+      delegate_to: "{{ proxmox_delegate }}"
+      changed_when: false
+      timeout: 900
+
     - name: Upgrade packages (non-interactive, safe opts)
       command: >
         sudo pct exec {{ pct_id }} --
         env DEBIAN_FRONTEND=noninteractive UCF_FORCE_CONFFNEW=1
         apt-get -y
+        -o DPkg::Lock::Timeout=600
         -o Dpkg::Options::=--force-confdef
         -o Dpkg::Options::=--force-confold
         -o APT::Color=0
