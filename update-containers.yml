@@ -6,41 +6,21 @@
   tasks:
     - name: Update apt package lists
       command: >
-        sudo pct exec {{ pct_id }} --
-        apt-get update -qq
+        sudo pct exec {{ pct_id }} -- apt-get update
       delegate_to: "{{ proxmox_delegate }}"
       register: update_out
       changed_when: "'Get:' in update_out.stdout or 'Hit:' in update_out.stdout"
 
-    - name: Wait for APT/dpkg locks to clear
+    - name: Upgrade packages
       command: >
-        sudo pct exec {{ pct_id }} --
-        bash -lc 'while fuser /var/lib/dpkg/lock /var/lib/dpkg/lock-frontend /var/lib/apt/lists/lock >/dev/null 2>&1; do sleep 5; done'
-      delegate_to: "{{ proxmox_delegate }}"
-      changed_when: false
-      timeout: 900
-
-    - name: Upgrade packages (non-interactive, safe opts)
-      command: >
-        sudo pct exec {{ pct_id }} --
-        env DEBIAN_FRONTEND=noninteractive UCF_FORCE_CONFFNEW=1
-        apt-get -y
-        -o DPkg::Lock::Timeout=600
-        -o Dpkg::Options::=--force-confdef
-        -o Dpkg::Options::=--force-confold
-        -o APT::Color=0
-        -o Dpkg::Progress-Fancy=0
-        upgrade
+        sudo pct exec {{ pct_id }} -- apt-get -y upgrade
       delegate_to: "{{ proxmox_delegate }}"
       register: upgrade_out
       changed_when: "'upgraded,' in upgrade_out.stdout"
-      timeout: 3600
 
     - name: Autoremove unused packages
       command: >
-        sudo pct exec {{ pct_id }} --
-        env DEBIAN_FRONTEND=noninteractive
-        apt-get -y autoremove
+        sudo pct exec {{ pct_id }} -- apt-get -y autoremove
       delegate_to: "{{ proxmox_delegate }}"
       register: autoremove_out
       changed_when: "'removed' in autoremove_out.stdout"
