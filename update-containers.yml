@@ -6,21 +6,32 @@
   tasks:
     - name: Update apt package lists
       command: >
-        sudo pct exec {{ pct_id }} -- apt-get update
+        sudo pct exec {{ pct_id }} --
+        apt-get update -qq
       delegate_to: "{{ proxmox_delegate }}"
       register: update_out
       changed_when: "'Get:' in update_out.stdout or 'Hit:' in update_out.stdout"
 
-    - name: Upgrade packages
+    - name: Upgrade packages (non-interactive, safe opts)
       command: >
-        sudo pct exec {{ pct_id }} -- apt-get -y upgrade
+        sudo pct exec {{ pct_id }} --
+        env DEBIAN_FRONTEND=noninteractive UCF_FORCE_CONFFNEW=1
+        apt-get -y
+        -o Dpkg::Options::=--force-confdef
+        -o Dpkg::Options::=--force-confold
+        -o APT::Color=0
+        -o Dpkg::Progress-Fancy=0
+        upgrade
       delegate_to: "{{ proxmox_delegate }}"
       register: upgrade_out
       changed_when: "'upgraded,' in upgrade_out.stdout"
+      timeout: 3600
 
     - name: Autoremove unused packages
       command: >
-        sudo pct exec {{ pct_id }} -- apt-get -y autoremove
+        sudo pct exec {{ pct_id }} --
+        env DEBIAN_FRONTEND=noninteractive
+        apt-get -y autoremove
       delegate_to: "{{ proxmox_delegate }}"
       register: autoremove_out
       changed_when: "'removed' in autoremove_out.stdout"
@@ -28,6 +39,7 @@
     - name: Show summary
       debug:
         msg: |
+          Container {{ inventory_hostname }}:
           Update: {{ update_out.stdout }}
           Upgrade: {{ upgrade_out.stdout }}
           Autoremove: {{ autoremove_out.stdout }}
