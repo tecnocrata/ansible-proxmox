@@ -1,15 +1,14 @@
----
 - name: Test pct exec via Proxmox
   hosts: containers
   gather_facts: no
 
   tasks:
-      - name: Run 'ls /' inside the container
-        command: >
-            sudo pct exec {{ pct_id }} -- ls /
-        delegate_to: proxmox
-        register: ls_out
+    - name: Run 'ls /' inside the container
+      command: >
+        sudo pct exec {{ pct_id }} -- ls /
+      delegate_to: "{{ proxmox_delegate }}"
+      register: ls_out
 
-      - name: Show output
-        debug:
-            var: ls_out.stdout_lines
+    - name: Show output
+      debug:
+        var: ls_out.stdout_lines
