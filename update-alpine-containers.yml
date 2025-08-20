@@ -1,0 +1,34 @@
+---
+- name: Update all Alpine containers via Proxmox pct
+  hosts: alpine_containers
+  gather_facts: no
+
+  tasks:
+    - name: Update apk package index
+      command: >
+        sudo pct exec {{ pct_id }} -- apk update
+      delegate_to: "{{ proxmox_delegate }}"
+      register: update_out
+      changed_when: "'fetch' in update_out.stdout or 'OK:' in update_out.stdout"
+
+    - name: Upgrade packages
+      command: >
+        sudo pct exec {{ pct_id }} -- apk upgrade
+      delegate_to: "{{ proxmox_delegate }}"
+      register: upgrade_out
+      changed_when: "'Upgrading' in upgrade_out.stdout or 'Installing' in upgrade_out.stdout"
+
+    - name: Clean apk cache
+      command: >
+        sudo pct exec {{ pct_id }} -- apk cache clean
+      delegate_to: "{{ proxmox_delegate }}"
+      register: clean_out
+      changed_when: false
+
+    - name: Show summary
+      debug:
+        msg: |
+          Container {{ inventory_hostname }}:
+          Update: {{ update_out.stdout }}
+          Upgrade: {{ upgrade_out.stdout }}
+          Clean: {{ clean_out.stdout }}
