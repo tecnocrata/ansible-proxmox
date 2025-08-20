@@ -1,6 +1,6 @@
 ---
 - name: Update all containers via Proxmox pct
-  hosts: containers
+  hosts: debian_containers
   gather_facts: no
 
   tasks:
